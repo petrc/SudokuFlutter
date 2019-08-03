@@ -2,20 +2,7 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 
-void main() => runApp(MyApp());
-
-class MyApp extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Sudoku',
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
-      ),
-      home: GamePage(),
-    );
-  }
-}
+import 'WinPage.dart';
 
 class GamePage extends StatefulWidget {
   GamePage({Key key}) : super(key: key);
@@ -26,7 +13,7 @@ class GamePage extends StatefulWidget {
 
 class _GamePageState extends State<GamePage> {
   List<Block> blocks;
-  int tries = 0;
+  bool setNote = false;
 
   Block selectedBlock;
 
@@ -42,10 +29,9 @@ class _GamePageState extends State<GamePage> {
 
       if (values.length > 0) {
         block.value = values[rnd.nextInt(values.length)];
+        block.correctValue = block.value;
       }
     }
-
-    tries++;
 
     setState(() {});
 
@@ -100,7 +86,9 @@ class _GamePageState extends State<GamePage> {
   }
 
   void validateBlockValues() {
-    for(var b=0; b<blocks.length; b++) {
+    bool solved = true;
+
+    for (var b = 0; b < blocks.length; b++) {
       var currentBlock = blocks[b];
       currentBlock.conflict = false;
 
@@ -137,12 +125,37 @@ class _GamePageState extends State<GamePage> {
           }
         }
       }
+
+      if (currentBlock.conflict) {
+        solved = false;
+      }
+    }
+
+    if (solved) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => WinPage()),
+      );
+    }
+  }
+
+  void removeValues(int num) {
+    var rnd = Random();
+
+    while (num > 0) {
+      int index = rnd.nextInt(blocks.length);
+      if (blocks[index].value > 0) {
+        blocks[index].value = 0;
+        blocks[index].static = false;
+        num--;
+      }
     }
   }
 
   @override
   void initState() {
     generateValues();
+    removeValues(55);
 
     super.initState();
   }
@@ -152,6 +165,17 @@ class _GamePageState extends State<GamePage> {
     return Scaffold(
       appBar: AppBar(
         title: Text("Sudoku"),
+        actions: <Widget>[
+          IconButton(
+            icon: Icon(Icons.refresh),
+            onPressed: () {
+              setState(() {
+                generateValues();
+                removeValues(5);
+              });
+            },
+          ),
+        ],
       ),
       body: Column(
         children: <Widget>[
@@ -169,14 +193,11 @@ class _GamePageState extends State<GamePage> {
               children: List.generate(
                 blocks.length, // 81
                 (index) {
-                  var backColor = blocks[index].value > 0 ? Colors.white : Colors.grey[200];
+                  var backColor = blocks[index].value > 0 ? Colors.white : Colors.grey[100];
 
                   if (blocks[index] == selectedBlock) {
-                    backColor = Colors.blueAccent;
+                    backColor = Colors.blueAccent[100];
                   }
-
-                  var text = blocks[index].value > 0 ? blocks[index].value.toString() : "";
-                  var textColor = blocks[index].conflict ? Colors.red : Colors.black;
 
                   return GestureDetector(
                     child: Container(
@@ -185,13 +206,7 @@ class _GamePageState extends State<GamePage> {
                         color: backColor,
                       ),
                       child: Center(
-                        child: Text(
-                          text,
-                          style: TextStyle(
-                            fontSize: 24,
-                            color: textColor,
-                          ),
-                        ),
+                        child: getText(index),
                       ),
                     ),
                     onTap: () {
@@ -205,12 +220,41 @@ class _GamePageState extends State<GamePage> {
             ),
           ),
           Container(
-            child: Text(
-              "Tries: " + tries.toString(),
+            margin: EdgeInsets.all(10),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: <Widget>[
+                FlatButton(
+                  child: Text("Hint"),
+                  onPressed: () {
+                    setState(() {
+                      if (selectedBlock != null) {
+                        setState(() {
+                          selectedBlock.value = selectedBlock.correctValue;
+                          validateBlockValues();
+                        });
+                      }
+                    });
+                  },
+                ),
+                Row(
+                  children: <Widget>[
+                    Text("Notes"),
+                    Checkbox(
+                      value: setNote,
+                      onChanged: (value) {
+                        setState(() {
+                          setNote = value;
+                        });
+                      },
+                    ),
+                  ],
+                ),
+              ],
             ),
           ),
           Container(
-            margin: EdgeInsets.only(top: 30),
+            margin: EdgeInsets.only(top: 10),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: List.generate(10, (index) {
@@ -237,10 +281,30 @@ class _GamePageState extends State<GamePage> {
                     ),
                   ),
                   onTap: () {
-                    setState(() {
-                      selectedBlock.value = index;
+                    if (selectedBlock.static) {
+                      return;
+                    }
+
+                    if (setNote) {
+                      if (index > 0) {
+                        if (selectedBlock.notes[index - 1] == true) {
+                          selectedBlock.notes[index - 1] = false;
+                        } else {
+                          selectedBlock.notes[index - 1] = true;
+                        }
+                      } else {
+                        selectedBlock.clearNotes();
+                      }
+                    } else {
+                      if (selectedBlock.value == index) {
+                        selectedBlock.value = 0;
+                      } else {
+                        selectedBlock.value = index;
+                      }
                       validateBlockValues();
-                    });
+                    }
+
+                    setState(() {});
                   },
                 );
               }),
@@ -248,16 +312,44 @@ class _GamePageState extends State<GamePage> {
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          setState(() {
-            tries = 0;
-            generateValues();
-          });
-        },
-        child: Icon(Icons.refresh),
-      ),
     );
+  }
+
+  Widget getText(int index) {
+    Block block = blocks[index];
+
+    if (block.value > 0) {
+      var text = blocks[index].value > 0 ? blocks[index].value.toString() : "";
+      var textColor = blocks[index].conflict ? Colors.red : blocks[index].static ? Colors.black : Colors.blue[900];
+
+      return Text(
+        text,
+        style: TextStyle(
+          fontSize: 24,
+          fontWeight: FontWeight.w500,
+          color: textColor,
+        ),
+      );
+    } else if (block.hasNotes()) {
+      return GridView.count(
+        crossAxisCount: 3,
+        shrinkWrap: true,
+        children: List.generate(
+          9,
+          (index) {
+            var noteText = block.notes[index] ? (index + 1).toString() : "";
+            return Center(
+              child: Text(
+                noteText,
+                style: TextStyle(fontSize: 10, color: Colors.blue[900]),
+              ),
+            );
+          },
+        ),
+      );
+    } else {
+      return SizedBox.shrink();
+    }
   }
 
   Border getBorder(int index) {
@@ -292,16 +384,27 @@ class _GamePageState extends State<GamePage> {
       right: rightBorder,
     );
   }
-
-  Text getText() {
-    if (getAvailableValues(blocks.indexOf(selectedBlock)).length == 0) {}
-  }
 }
 
 class Block {
+  int correctValue = 0;
   int value = 0;
-  var hints = [false, false, false, false, false, false, false, false, false];
+  var notes = [false, false, false, false, false, false, false, false, false];
   bool conflict = false;
+  bool static = true;
 
   Block();
+
+  bool hasNotes() {
+    for (bool note in notes) {
+      if (note) return true;
+    }
+    return false;
+  }
+
+  void clearNotes() {
+    for (int i = 0; i < notes.length; i++) {
+      notes[i] = false;
+    }
+  }
 }
