@@ -86,52 +86,55 @@ class _GamePageState extends State<GamePage> {
   }
 
   void validateBlockValues() {
-    bool solved = true;
+    int solvedBlocks = 0;
 
     for (var b = 0; b < blocks.length; b++) {
       var currentBlock = blocks[b];
-      currentBlock.conflict = false;
 
-      int row = b ~/ 9;
-      int col = b % 9;
+      if (currentBlock.value > 0) {
+        currentBlock.conflict = false;
 
-      // check if number exists in row
-      for (var i = 0; i < 9; i++) {
-        var block = blocks[row * 9 + i];
-        if (block.value > 0 && block != currentBlock && block.value == currentBlock.value) {
-          block.conflict = true;
-          currentBlock.conflict = true;
-        }
-      }
+        int row = b ~/ 9;
+        int col = b % 9;
 
-      // check if number exists in column
-      for (var i = 0; i < 9; i++) {
-        var block = blocks[col + i * 9];
-        if (block.value > 0 && block != currentBlock && block.value == currentBlock.value) {
-          block.conflict = true;
-          currentBlock.conflict = true;
-        }
-      }
-
-      // check if number exists in block
-      int blockRow = (row ~/ 3) * 3;
-      int blockCol = (col ~/ 3) * 3;
-      for (var r = 0; r < 3; r++) {
-        for (var c = 0; c < 3; c++) {
-          var block = blocks[((blockRow + r) * 9) + (blockCol + c)];
+        // check if number exists in row
+        for (var i = 0; i < 9; i++) {
+          var block = blocks[row * 9 + i];
           if (block.value > 0 && block != currentBlock && block.value == currentBlock.value) {
             block.conflict = true;
             currentBlock.conflict = true;
           }
         }
-      }
 
-      if (currentBlock.conflict) {
-        solved = false;
+        // check if number exists in column
+        for (var i = 0; i < 9; i++) {
+          var block = blocks[col + i * 9];
+          if (block.value > 0 && block != currentBlock && block.value == currentBlock.value) {
+            block.conflict = true;
+            currentBlock.conflict = true;
+          }
+        }
+
+        // check if number exists in block
+        int blockRow = (row ~/ 3) * 3;
+        int blockCol = (col ~/ 3) * 3;
+        for (var r = 0; r < 3; r++) {
+          for (var c = 0; c < 3; c++) {
+            var block = blocks[((blockRow + r) * 9) + (blockCol + c)];
+            if (block.value > 0 && block != currentBlock && block.value == currentBlock.value) {
+              block.conflict = true;
+              currentBlock.conflict = true;
+            }
+          }
+        }
+
+        if (!currentBlock.conflict) {
+          solvedBlocks++;
+        }
       }
     }
 
-    if (solved) {
+    if (solvedBlocks == 81) {
       Navigator.push(
         context,
         MaterialPageRoute(builder: (context) => WinPage()),
@@ -155,7 +158,7 @@ class _GamePageState extends State<GamePage> {
   @override
   void initState() {
     generateValues();
-    removeValues(55);
+    removeValues(52);
 
     super.initState();
   }
@@ -171,7 +174,7 @@ class _GamePageState extends State<GamePage> {
             onPressed: () {
               setState(() {
                 generateValues();
-                removeValues(5);
+                removeValues(55);
               });
             },
           ),
@@ -192,7 +195,7 @@ class _GamePageState extends State<GamePage> {
               shrinkWrap: true,
               children: List.generate(
                 blocks.length, // 81
-                (index) {
+                    (index) {
                   var backColor = blocks[index].value > 0 ? Colors.white : Colors.grey[100];
 
                   if (blocks[index] == selectedBlock) {
@@ -274,9 +277,9 @@ class _GamePageState extends State<GamePage> {
                     child: Center(
                       child: index > 0
                           ? Text(
-                              (index).toString(),
-                              style: TextStyle(fontSize: 24),
-                            )
+                        (index).toString(),
+                        style: TextStyle(fontSize: 24),
+                      )
                           : Icon(Icons.clear),
                     ),
                   ),
@@ -325,8 +328,8 @@ class _GamePageState extends State<GamePage> {
       return Text(
         text,
         style: TextStyle(
-          fontSize: 24,
-          fontWeight: FontWeight.w500,
+          fontSize: 28,
+          fontWeight: FontWeight.w400,
           color: textColor,
         ),
       );
@@ -336,7 +339,7 @@ class _GamePageState extends State<GamePage> {
         shrinkWrap: true,
         children: List.generate(
           9,
-          (index) {
+              (index) {
             var noteText = block.notes[index] ? (index + 1).toString() : "";
             return Center(
               child: Text(

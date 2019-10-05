@@ -21,8 +21,14 @@ class _WinPageState extends State<WinPage> {
       ),
       body: Center(
         child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.max,
           children: <Widget>[
-            Text("Congratulations"),
+            Image(image: AssetImage("assets/winner.gif")),
+            Text(
+              "Congratulations",
+              textAlign: TextAlign.center,
+            ),
           ],
         ),
       ),
