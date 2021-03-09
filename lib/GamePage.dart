@@ -5,7 +5,9 @@ import 'package:flutter/material.dart';
 import 'WinPage.dart';
 
 class GamePage extends StatefulWidget {
-  GamePage({Key key}) : super(key: key);
+  final int generateDelay;
+
+  GamePage({Key key, this.generateDelay = 0}) : super(key: key);
 
   @override
   _GamePageState createState() => _GamePageState();
@@ -37,10 +39,11 @@ class _GamePageState extends State<GamePage> {
 
     for (Block block in blocks) {
       if (block.value == 0) {
-//        Future.delayed(const Duration(milliseconds: 50), () {
-//          generateValues();
-//        });
-        generateValues();
+        if (widget.generateDelay > 0) {
+          Future.delayed(Duration(milliseconds: widget.generateDelay), generateValues);
+        } else {
+          generateValues();
+        }
         return;
       }
     }
@@ -195,7 +198,7 @@ class _GamePageState extends State<GamePage> {
               shrinkWrap: true,
               children: List.generate(
                 blocks.length, // 81
-                    (index) {
+                (index) {
                   var backColor = blocks[index].value > 0 ? Colors.white : Colors.grey[100];
 
                   if (blocks[index] == selectedBlock) {
@@ -277,9 +280,9 @@ class _GamePageState extends State<GamePage> {
                     child: Center(
                       child: index > 0
                           ? Text(
-                        (index).toString(),
-                        style: TextStyle(fontSize: 24),
-                      )
+                              (index).toString(),
+                              style: TextStyle(fontSize: 24),
+                            )
                           : Icon(Icons.clear),
                     ),
                   ),
@@ -290,10 +293,10 @@ class _GamePageState extends State<GamePage> {
 
                     if (setNote) {
                       if (index > 0) {
-                        if (selectedBlock.notes[index - 1] == true) {
-                          selectedBlock.notes[index - 1] = false;
+                        if (selectedBlock.notes[index - 1] == 0) {
+                          selectedBlock.notes[index - 1] = index;
                         } else {
-                          selectedBlock.notes[index - 1] = true;
+                          selectedBlock.notes[index - 1] = 0;
                         }
                       } else {
                         selectedBlock.clearNotes();
@@ -323,7 +326,11 @@ class _GamePageState extends State<GamePage> {
 
     if (block.value > 0) {
       var text = blocks[index].value > 0 ? blocks[index].value.toString() : "";
-      var textColor = blocks[index].conflict ? Colors.red : blocks[index].static ? Colors.black : Colors.blue[900];
+      var textColor = blocks[index].conflict
+          ? Colors.red
+          : blocks[index].static
+              ? Colors.black
+              : Colors.blue[900];
 
       return Text(
         text,
@@ -339,13 +346,14 @@ class _GamePageState extends State<GamePage> {
         shrinkWrap: true,
         children: List.generate(
           9,
-              (index) {
-            var noteText = block.notes[index] ? (index + 1).toString() : "";
+          (index) {
             return Center(
-              child: Text(
-                noteText,
-                style: TextStyle(fontSize: 10, color: Colors.blue[900]),
-              ),
+              child: block.notes[index] > 0
+                  ? Text(
+                      block.notes[index].toString(),
+                      style: TextStyle(fontSize: 10, color: Colors.blue[900]),
+                    )
+                  : SizedBox.shrink(),
             );
           },
         ),
@@ -392,22 +400,22 @@ class _GamePageState extends State<GamePage> {
 class Block {
   int correctValue = 0;
   int value = 0;
-  var notes = [false, false, false, false, false, false, false, false, false];
+  var notes = [0, 0, 0, 0, 0, 0, 0, 0, 0];
   bool conflict = false;
   bool static = true;
 
   Block();
 
   bool hasNotes() {
-    for (bool note in notes) {
-      if (note) return true;
+    for (int note in notes) {
+      if (note > 0) return true;
     }
     return false;
   }
 
   void clearNotes() {
     for (int i = 0; i < notes.length; i++) {
-      notes[i] = false;
+      notes[i] = 0;
     }
   }
 }
